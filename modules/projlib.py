@@ -19,7 +19,7 @@ from diffsims.generators.rotation_list_generators import get_beam_directions_gri
 from matplotlib.colors import ListedColormap
 from spherical_kde import SphericalKDE
 from scipy.interpolate import griddata
-from wand.image import Image
+
 def genoritri(resolution=1.0, mesh="spherified_cube_edge"):
     grid_cub = get_beam_directions_grid("cubic", resolution, mesh=mesh)
     trioris = Rotation.from_euler(np.deg2rad(grid_cub))*Vector3d.zvector()
