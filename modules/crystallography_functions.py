@@ -226,48 +226,7 @@ def normArrayColumns(arr):
     
     return arr_norm
 
-def vector2miller(v, MIN=True, Tol=1e-9,tol=1e5,text=False,decimals=3):
-    vm = np.round(v/Tol)*Tol
-    #print((np.round(vm)==vm).all())
-    #if (vm==np.array([ 2. ,-1. , 1.])).all():
-        #print((np.round(vm)==vm).all())
-        #print(vm)
-    if (np.abs(vm)<=1).all():
-        vm=np.round(vm/abs(min(vm[np.abs(vm)>1/tol]))*tol)/tol
-        vm/=min(abs(vm[np.nonzero(vm)[0]]))   
-    if not (np.round(vm)==vm).all():
-        if MIN:
-            vm=np.round(vm/abs(min(vm[np.abs(vm)>1/tol]))*tol)/tol
-            vm/=min(abs(vm[np.nonzero(vm)[0]]))
-        else:
-            #print(vm)
-            vm=np.round(vm/abs(max(vm[np.abs(vm)>1/tol]))*tol)/tol
-            vm/=max(abs(vm[np.nonzero(vm)[0]]))
-    else:
-        #print(vm)
-        vm=vm.astype('int')
-        #print(vm)
-        gcd=math.gcd(math.gcd(vm[0],vm[1]),vm[2])
-        vm=vm.astype('float')
-        vm/=gcd
-    #if (vm==np.array([-2.,-1., 1.])).all():
-    #    print('====================================================')
-    #    print(v)
-    #    print('====================================================')
-    vm=np.around(vm,decimals=decimals)
-    if text:
-        if (vm==vm.astype(int)).all():
-            vm=f"$[{{{int(vm[0])}}}{{{int(vm[1])}}}{{{int(vm[2])}}}]$".replace('{-','\\overline{')
-        else:
-            f"$[{{{(vm[0])}}}{{{(vm[1])}}}{{{(vm[2])}}}]$".replace('{-','\\overline{')
-    return(vm)
     
-def vectors2miller(V, MIN=True, Tol=1e-9,tol=1e5,text=False):
-    VM=[]
-    for v in V.T:
-        VM.append(vector2miller(v,MIN=MIN,Tol=Tol,tol=tol,text=text))
-    return np.array(VM).T
- 
 def cubic_lattice_vec(a):
     V = a*np.eye(3)
     return V[:,0], V[:,1], V[:,2]
@@ -5969,5 +5928,47 @@ def flipvector2negative(v, Tol=1e-9):
         c=-1.0
     return vm,c
   
+def vector2miller(v, MIN=True, Tol=1e-9,tol=1e5,text=False,decimals=3):
+    vm = np.round(v/Tol)*Tol
+    #print((np.round(vm)==vm).all())
+    #if (vm==np.array([ 2. ,-1. , 1.])).all():
+        #print((np.round(vm)==vm).all())
+        #print(vm)
+    if (np.abs(vm)<=1).all():
+        vm=np.round(vm/abs(min(vm[np.abs(vm)>1/tol]))*tol)/tol
+        vm/=min(abs(vm[np.nonzero(vm)[0]]))   
+    if not (np.round(vm)==vm).all():
+        if MIN:
+            vm=np.round(vm/abs(min(vm[np.abs(vm)>1/tol]))*tol)/tol
+            vm/=min(abs(vm[np.nonzero(vm)[0]]))
+        else:
+            #print(vm)
+            vm=np.round(vm/abs(max(vm[np.abs(vm)>1/tol]))*tol)/tol
+            vm/=max(abs(vm[np.nonzero(vm)[0]]))
+    else:
+        #print(vm)
+        vm=vm.astype('int')
+        #print(vm)
+        gcd=math.gcd(math.gcd(vm[0],vm[1]),vm[2])
+        vm=vm.astype('float')
+        vm/=gcd
+    #if (vm==np.array([-2.,-1., 1.])).all():
+    #    print('====================================================')
+    #    print(v)
+    #    print('====================================================')
+    vm=np.around(vm,decimals=decimals)
+    if text:
+        if (vm==vm.astype(int)).all():
+            vm=f"$[{{{int(vm[0])}}}{{{int(vm[1])}}}{{{int(vm[2])}}}]$".replace('{-','\\overline{')
+        else:
+            f"$[{{{(vm[0])}}}{{{(vm[1])}}}{{{(vm[2])}}}]$".replace('{-','\\overline{')
+    return(vm)
+
+def vectors2miller(V, MIN=True, Tol=1e-9,tol=1e5,text=False):
+    VM=[]
+    for v in V.T:
+        VM.append(vector2miller(v,MIN=MIN,Tol=Tol,tol=tol,text=text))
+    return np.array(VM).T
+ 
 
     
