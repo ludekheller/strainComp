@@ -203,7 +203,9 @@ def miller2fractional(uvw,frac=10,eps2=1e-2,decimals=5):
     #print(idxs)
     if len(idxs[0])>0:
         idxs = np.where(abs(uvw)>eps)
-        uvw=uvw/uvw[idxs]
+        if len(idxs)>0:
+            print(idxs[0][0])
+            uvw=uvw/uvw[idxs[0][0]]
         
 
     return np.around(uvw,decimals=decimals)
@@ -2492,21 +2494,27 @@ def plot_lattice_plane(axl,PlanePoints,**kwargs):
     
         axl.plot_trisurf(PlanePoints[0,:],PlanePoints[1,:], PlanePoints[2,:],**kwargs)
 
-def plot_lattice_boundaries(axl,LatticePointsNew,polygon=False,**kwargs):
-    allPoints=np.hstack([p for points in LatticePointsNew for p in points])
+def plot_lattice_boundaries(axl,LatticePointsNew,allPoints=None,polygon=False,tol=1e-1,**kwargs):
+    if allPoints is None:
+        allPoints=np.hstack([p for points in LatticePointsNew for p in points])
     if polygon:
         for idx in range(3):
             Xbound=copy.deepcopy(allPoints)
             for extrval in [np.min(Xbound[idx,:]),np.max(Xbound[idx,:])]:
                 Xbound=copy.deepcopy(allPoints)
-                Xbound=Xbound[:,Xbound[idx,:]==extrval]
+                #Xbound=Xbound[:,Xbound[idx,:]==extrval]
+                Xbound=Xbound[:,np.abs(Xbound[idx,:]-extrval)<tol]
+                #np.abs(vertices[0,:]-np.min(vertices[0,:]))<1e-1
                 #Xbound[idx,:]=Xbound[idx,:]*0+extrval
                 #axl.plot_trisurf(Xbound[0,:],Xbound[1,:], Xbound[2,:],\
                 #                 alpha=0.5,color='r', linewidths=0., edgecolors='grey',linestyle='-',\
                 #                 linewidth = 0.0, antialiased = True) 
                 if Xbound.shape[1]>=3:
-                    hull = ConvexHull(Xbound[np.delete(range(3),idx,0),:].T)
-                    axl.add_collection3d(Poly3DCollection([Xbound[:,hull.vertices].T], **kwargs))
+                    try:
+                        hull = ConvexHull(Xbound[np.delete(range(3),idx,0),:].T)
+                        axl.add_collection3d(Poly3DCollection([Xbound[:,hull.vertices].T], **kwargs))
+                    except:
+                        pass
     else:
         axl.plot_trisurf(allPoints[0,:],allPoints[1,:], allPoints[2,:],triangles=ConvexHull(allPoints.T).simplices,
                          **kwargs)
@@ -2995,6 +3003,7 @@ def zero_normal_strains(Strain, mcircles,VV,normdiri,phi_around_normdiri,Parent_
             InPlaneShears['inlatticedir'][-1].append(ShDirg)
             InPlaneNormals['inlatticedir'][-1].append(NoDirg)
             InPlaneShears['hkldir'][-1].append(xyz2fractional(Parent_xyz2hkl,ShDirg))
+            print(NoDirg)
             InPlaneNormals['hkldir'][-1].append(xyz2fractional(Parent_xyz2hkl,NoDirg))
 
     return     Shear,Normal,InPlaneShears,InPlaneNormals,[an,an+90.]
@@ -3732,7 +3741,18 @@ def select_atomic_plane(LatticePoints,normal,eps=1e-1,shift=0.,eps2=None):
         PointsOut.append(PointsOut1)
     
     return PointsOut
-
+def get_interface2d(pointOutproj,normal,horizontalproj,verticalproj):
+    vertices=[]
+    for points in pointOutproj:
+        for p in points:
+            for px,py in zip(p[0],p[1]):
+                vertices.append([px,py])
+    vertices=np.array(vertices)
+    hull = ConvexHull(vertices)
+    verts=vertices[hull.vertices,:].T
+    projnormal=np.array([horizontalproj.dot(normal),verticalproj.dot(normal)])
+    twpoints=verts[:,np.abs(projnormal.dot(verts))<1e-10]
+    return twpoints
 def select_plane(LatticeVectors,normal,eps=1e-1,shift=0.,Q=np.eye(3)):
     if not isinstance(normal, np.ndarray):
         normal=np.array(normal);
@@ -3870,7 +3890,7 @@ def select_atomic_region(LatticePoints,normal,side='lower',eps=1e-1,shift=0.):
     
     return PointsOut
     
-def plot_atomic_plane2D(LatticePoints,normal,vertical,ax=None,colors=['r','b','g'],edgecolors=['r','b','g'],\
+def plot_atomic_plane2D(LatticePoints,normal,vertical,ax=None,colors=['r','b','g'],edgecolors=['r','b','g'],plot=True,\
                       salpha=1.,lalpha=1.,gridcolor=[0.5,0.5,0.5],linewidths=[1,1,1],markersizes=[200,200,200],Q=np.eye(3),xlim=[],ylim=[],out=False):
     if not isinstance(normal, np.ndarray):
         normal=np.array(normal);
@@ -3879,7 +3899,7 @@ def plot_atomic_plane2D(LatticePoints,normal,vertical,ax=None,colors=['r','b','g
     normal=normal/np.sqrt(normal.dot(normal))
     vertical=vertical/np.sqrt(vertical.dot(vertical))
     horizontal=np.cross(vertical,normal)
-    if ax==None:
+    if ax==None and plot:
         fig = plt.figure() 
         ax = fig.add_subplot(111) 
     else:
@@ -3904,8 +3924,9 @@ def plot_atomic_plane2D(LatticePoints,normal,vertical,ax=None,colors=['r','b','g
                 point_proj_y=np.delete(point_proj_y,idxs)
                 idxs = np.where(point_proj_y>ylim[1])[0]
                 point_proj_x=np.delete(point_proj_x,idxs)
-                point_proj_y=np.delete(point_proj_y,idxs)               
-            ax.scatter(point_proj_x, point_proj_y, color=col,edgecolors=ecol,alpha=salpha,linewidths=linewidth,s = markersize) 
+                point_proj_y=np.delete(point_proj_y,idxs)  
+            if plot:
+                ax.scatter(point_proj_x, point_proj_y, color=col,edgecolors=ecol,alpha=salpha,linewidths=linewidth,s = markersize) 
             pointout.append([point_proj_x,point_proj_y])
         Pointsout.append(pointout)
     #plt.show()        
@@ -3922,6 +3943,7 @@ def get_twinning_plane_points(K1,Pointsout,horizontal,vertical):
     allPoints=np.hstack([p for points in Pointsout for p in points])
     hull = ConvexHull(allPoints.T)
     verts=allPoints[:,hull.vertices]
+    #print(verts)
     twpoints=verts[:,np.abs(projnormal.dot(verts))<1e-10]
     return twpoints
     
@@ -5731,6 +5753,8 @@ def get_twinningdata(orim,Ldir_css,twin_systems,twt,phase):
     TwinnigData['neworim']=[]
     TwinnigData['neweus']=[]
     TwinnigData['twsimax']=[]
+    TwinnigData['n1']=[]
+    TwinnigData['a1']=[]
     #grain index
     gi=0
     #Unit vector of the loading direction in coordinate system of the sample
@@ -5756,6 +5780,8 @@ def get_twinningdata(orim,Ldir_css,twin_systems,twt,phase):
         TwinnigData['neworim'].append(twin_systems[twt]['C_'+phase][twsimax].dot(orim[gi]))
         TwinnigData['neweus'].append(euler_angles_from_matrix(TwinnigData['neworim'][-1]))
         TwinnigData['twsimax'].append(twsimax)
+        TwinnigData['n1'].append(twin_systems[twt]['n1_'+phase][twsimax])
+        TwinnigData['a1'].append(twin_systems[twt]['a1_'+phase][twsimax])
     return TwinnigData
 
 def get_twinning_dislocation(K1,eta1,eta2,L,G=None,Gr=None):

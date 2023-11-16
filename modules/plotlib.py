@@ -15,6 +15,10 @@ try:
     from scipy.interpolate import griddata
 except:
     pass
+try:
+    from wand.image import Image
+except:
+    pass
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import sys
@@ -40,11 +44,12 @@ class plotter:
         self.setAttributes(plotdirsnorms=True,dirs=[],dirtexthifts=[],norms=[],normtexthifts=[],phase1='A',phase2='M',printcorrespasfamily=False,correspdelim='||',
                                       printasfamily=True,printcorrespascubicfamily=False,printascubicfamily=False,printcorrespondent=False,Cd=np.eye(3),Cp=np.eye(3),
                                        dy1=None,dx1=None,dy2=None,dx2=None,colormapdata=None,printcorrespondentpoints=False,correspondentpointsize=25,scatterpointsize=70,
-                                       printcorrespondentpointscolored=False) 
+                                       printcorrespondentpointscolored=False,histscale=None,histlevels=None,histnorm=True,scatterplotashist=False,bins=128) 
         #hbpAttributes
         self.setAttributes(scatterplot=False, scatterdata=None,scattercolscale=None,scattercolscalevm=None, scattersizescale=None,scat=[],scatteridxs=None,
                            scatterzorder=None,scattercolscaleticks=None,scatterproj=[],scattereqhkl=[],scatteroris=None,scatterLr=None,ax2annot=None,ax2annotcompres=None,
-                          ax2annottension=None,scatteredgecolors='None',scatterlinewidth=0)
+                          ax2annottension=None,scatteredgecolors='None',scatterlinewidth=0,scatteredgecolor='w',scatterfacecolor='k',dirsnormstext={},
+                          dirsfacecolors={},dirsedgecolors={},normsfacecolors={},normsedgecolors={})
         #onmovetextAttributes
         self.setAttributes(annot=False,onmovetext=None,showdataasplotted=True, showdatanames=None,showdata=None)
 
@@ -149,6 +154,20 @@ class plotter:
         hklkeys=[f"{int(d['hkl'][0])}{int(d['hkl'][1])}{int(d['hkl'][2])}" for d in normals]
         self.defaultdirtexthifts={key:[0,0] for key in uvwkeys}
         self.defaultnormtexthifts={key:[0,0] for key in hklkeys}
+        self.scatterdirsfacecolors={key:self.scatterfacecolor for key in uvwkeys}
+        self.scatternormsfacecolors={key:self.scatterfacecolor for key in hklkeys}
+        self.scatterdirsedgecolors={key:self.scatteredgecolor for key in uvwkeys}
+        self.scatternormsedgecolors={key:self.scatteredgecolor for key in hklkeys}
+        #print(self.dirs)
+        #print(self.scatterdirsfacecolors)
+        self.scatterdirsfacecolors.update(self.dirsfacecolors)
+        #print(self.scatterdirsfacecolors)
+        self.scatterdirsedgecolors.update(self.dirsedgecolors)
+        self.scatternormsfacecolors.update(self.normsfacecolors)
+        self.scatternormsedgecolors.update(self.normsedgecolors)
+        
+        #print(self.dirsfacecolors)
+        
         
         if len(self.dirtexthifts)!=0:
             for key in self.dirtexthifts.keys():
@@ -164,7 +183,8 @@ class plotter:
                         self.defaultnormtexthifts[key][i]+=self.normtexthifts[key][i]
                 except:
                     pass
-        for key,toplot,textshiftkeys,textshifts,CdCp,LP2 in zip(['uvw','hkl'],[dirs,normals],[uvwkeys,hklkeys],[self.defaultdirtexthifts,self.defaultnormtexthifts],[self.Cd[:,:,self.varsel],self.Cp[:,:,self.varsel]],[self.LPhase2, self.LrPhase2]):
+        #print(self.dirtexthifts)
+        for key,facecolor,edgecolor,toplot,textshiftkeys,textshifts,CdCp,LP2 in zip(['uvw','hkl'],[self.scatterdirsfacecolors,self.scatternormsfacecolors],[self.scatterdirsedgecolors,self.scatternormsedgecolors],[dirs,normals],[uvwkeys,hklkeys],[self.defaultdirtexthifts,self.defaultnormtexthifts],[self.Cd[:,:,self.varsel],self.Cp[:,:,self.varsel]],[self.LPhase2, self.LrPhase2]):
             #print(toplot)
             if self.printasfamily and not self.sphere=='full':
                 brackL='\{'
@@ -193,11 +213,16 @@ class plotter:
 
             d2plot=[(d[self.ProjType][0:2],d[key],d['textshift'],textshiftkey) for d,textshiftkey in zip(toplot,textshiftkeys) if d['vector'][2]>=0 or np.abs(d['vector'][2])<1e-5]#np.array([d['equalarea'][0:2] for d in dirs if d['vector'][2]>=0 or np.abs(d['vector'][2])<1e-5])
             #print([d2p[0][:,0] for d2p in d2plot])
-            self.ax.scatter([d2p[0][0,0] for d2p in d2plot if d2p[0][1]>=self.textlim],[d2p[0][1,0] for d2p in d2plot if d2p[0][1]>=self.textlim],c='k',s=self.scatterpointsize,edgecolors='w',alpha=1,linewidths=1, zorder=5000)
+            #print(facecolor)
+            facecolors=[facecolor[d2p[3]] for d2p in d2plot if d2p[0][1]>=self.textlim]
+            edgecolors=[edgecolor[d2p[3]] for d2p in d2plot if d2p[0][1]>=self.textlim]
+            #print(facecolors)
+            #print(edgecolors)
+            self.ax.scatter([d2p[0][0,0] for d2p in d2plot if d2p[0][1]>=self.textlim],[d2p[0][1,0] for d2p in d2plot if d2p[0][1]>=self.textlim],c=facecolors,s=self.scatterpointsize,edgecolors=edgecolors,linewidths=1, zorder=500000)
             C2plotx=[]
             C2ploty=[]
             COLS=[]
-            for d2p in d2plot:               
+            for d2p in d2plot:   
                 if d2p[0][1]>=self.textlim:
                     if d2p[0][1]==0:
                         dy=self.dy1
@@ -247,7 +272,11 @@ class plotter:
                         self.ax.legend(handles=legend_elements, loc='upper left',facecolor=legbackg)
     
                     text=text.replace('{-','\\overline{')#.replace('phase',phase).replace('phs2',phase2)
-                    tt=self.ax.text(d2p[0][0]+dx+textshifts[d2p[3]][0],d2p[0][1]+dy+textshifts[d2p[3]][1],text,color='k', zorder=6000)
+                    try:
+                        text2apply=self.dirsnormstext[d2p[3]]
+                    except:
+                        text2apply=text
+                    tt=self.ax.text(d2p[0][0]+dx+textshifts[d2p[3]][0],d2p[0][1]+dy+textshifts[d2p[3]][1],text2apply,color='k', zorder=600000)
                     tt.set_bbox(dict(boxstyle='square,pad=-0.',facecolor='white', alpha=0.5, edgecolor='None'))
     def plotColormap(self,**kwargs):
         self.setAttributes(**kwargs)
@@ -266,22 +295,23 @@ class plotter:
             #Grid data
             titles=['gx','gy','gz','nummask','mask']
             if not self.colmapdata is None and self.plotmap:
-                if self.datadeviders is None:
-                    datadeviders=[[0,self.oris.shape[1]]]
-                else:
-                    datadeviders=self.datadeviders
                 if self.colormapdata is None:
-                    colormapdata=[]
-                if self.colormapdata is None:
-                    for datadevider in datadeviders:    
-                        gx,gy, gz, nummask, mask=genprojgrid(self.oris,#self.oris[:,datadevider[0]:datadevider[1]],
-                                                             gdata=self.colmapdata[datadevider[0]:datadevider[1]],
-                                                             nump=self.nump,proj=self.ProjType)
-                        if self.colormapdata is None:
-                            colormapdata.append({})
-                            for title in titles:
-                                exec(f'colormapdata[-1]["{title}"]={title}')                               
-                    self.colormapdata= colormapdata
+                    if self.datadeviders is None:
+                        datadeviders=[[0,self.oris.shape[1]]]
+                    else:
+                        datadeviders=self.datadeviders
+                    if self.colormapdata is None:
+                        colormapdata=[]
+                    if self.colormapdata is None:
+                        for datadevider in datadeviders:    
+                            gx,gy, gz, nummask, mask=genprojgrid(self.oris,#self.oris[:,datadevider[0]:datadevider[1]],
+                                                                 gdata=self.colmapdata[datadevider[0]:datadevider[1]],
+                                                                 nump=self.nump,proj=self.ProjType)
+                            if self.colormapdata is None:
+                                colormapdata.append({})
+                                for title in titles:
+                                    exec(f'colormapdata[-1]["{title}"]={title}')                               
+                        self.colormapdata= colormapdata
                 for colmapdat in self.colormapdata:
                     #print(colmapdat)
                     #for title in titles:
@@ -321,6 +351,7 @@ class plotter:
             self.scattereqhkl=[]
             self.scatterproj=[]
             for scatterdata in self.scatterdata:
+                #print(self.sphere)
                 if self.ProjType=='equalarea':
                     equalarea=True
                     if self.sphere=='triangle':
@@ -369,6 +400,34 @@ class plotter:
                 else:
                     self.scat.append(self.ax.scatter(scatterproj[0,self.scatterzorder],scatterproj[1,self.scatterzorder],s=s,c=c,linewidth=self.scatterlinewidth, edgecolors=self.scatteredgecolors,cmap=self.cmap))
 
+    def plotScatterAsHist(self,**kwargs):
+        self.setAttributes(**kwargs)
+        histdata=np.empty((3,0))
+        histdataweights=np.empty((0))
+        for scatterproj in self.scatterproj:
+            histdata=np.hstack((histdata,scatterproj))
+            histdataweights=np.hstack((histdataweights,self.hbptrstrainnorm))
+        self.histdata=histdata
+        self.histdataweights=histdataweights
+        hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]],weights=self.histdataweights)
+        
+        if self.histscale=='sqrt':
+            hist=hist**0.5
+        elif self.histscale=='log':
+            hist=np.log(hist)
+        if self.histnorm:
+            hist=hist/np.max(hist)
+        if self.histlevels is None:
+            self.histlevels=np.linspace(0, np.max(hist), 5)[1:]
+        X, Y = np.meshgrid((xedges[:-1] + xedges[1:])/2.,
+                           (yedges[:-1] + yedges[1:])/2.)
+        #print('ok')
+        self.histplot=self.ax.contourf(hist, extent=(-1, 1, -1, 1),levels=self.histlevels,zorder=40000)  
+        
+    def plotHist():
+        
+        return
+        
     def plotColorbar(self,**kwargs):
         self.setAttributes(**kwargs)
         try:
@@ -377,6 +436,12 @@ class plotter:
                 plotbar=True
                 vmcolbar=self.vmbar#scattercolscalevm
                 vmcolbarticks=self.scattercolscaleticks
+            elif self.scatterplotashist:
+                scbar=self.histplot
+                plotbar=True
+                vmcolbar=None#self.vmbar#scattercolscalevm
+                vmcolbarticks=None#self.scattercolscaleticks
+                
             else:
                 scbar=self.colormap
                 plotbar=True
@@ -484,7 +549,7 @@ class plotter:
                     #basictext+=f"{self.showdatanames[0]}:{np.around(self.showdata[0][idx],decimals=3)}\n"
                     basictext+=f"{self.cbartitle}:{np.around(self.colmapdata[idx],decimals=3)}" 
         except:
-            basictext=""
+            basictext="Problem with data formater"
                 
         return basictext    
 
@@ -498,19 +563,19 @@ class plotter:
                 if self.withdraw:
                     self.fig.canvas.draw()
             #self.annotationtext=basictext
-        return ""
+        return basictext
     def dataShow(self,**kwargs):
         self.setAttributes(**kwargs)
-        self.ax.format_coord = self.format_coord
+        #self.ax.format_coord = self.format_coord
     def onmove(self,event):  
         if event.inaxes:
             #print(dir(event))
-            #self.fig.texts[1].set_text(self.format_coord(event.xdata,event.ydata))
+            self.fig.texts[1].set_text(self.format_coord(event.xdata,event.ydata))
             self.fig.texts[1].set_visible(True)
         else:
             self.fig.texts[1].set_visible(False)
         
-        
+        plt.draw()
 
     def dataAnnot(self,**kwargs):
         self.setAttributes(**kwargs)
@@ -520,6 +585,7 @@ class plotter:
         self.fig.texts[1].set_visible(True)
         #print("okkkkkkkk")
         #self.fig.canvas.mpl_connect('motion_notify_event', self.onmove)
+        #self.fig.canvas.mpl_connect('button_press_event', self.onmove)
 
     def scatterDataAnnot(self,**kwargs):
         self.setAttributes(**kwargs)
@@ -532,7 +598,7 @@ class plotter:
         self.ANNOTS=[]
         for scatterproj in self.scattereqhkl:
             self.ANNOTS.append(self.ax.annotate("", xy=(0,0), xytext=(5,5),textcoords="offset points",
-                                bbox=dict(boxstyle="round", fc="w",alpha=0.5),zorder=100000))
+                                bbox=dict(boxstyle="round", fc="w",alpha=0.5),zorder=1000000))
             self.ANNOTS[-1].set_visible(False)
         #if self.ax2annot is None:
             #self.ax2annot=[True]*len(self.ANNOTS)
@@ -568,8 +634,9 @@ class plotter:
         #y=event.ydata
         #basictext=self.format_annot(x, y)
         self.fig.text(0.1,0.85,'ppppppppppppppppppppppp',fontsize=12)
-        if pppppp:
-            print('ok')
+        #if pppppp:
+            #print('ok')
+        
         #basictext="neco"
         #print("ook")
         #self.fig.texts[1].set_text(basictext)
@@ -578,7 +645,18 @@ class plotter:
         #        self.fig.texts[1].set_text(basictext)
         #        self.fig.canvas.draw()
         plt.draw()
+    def onclick3(self,event):
+        print('ok')
+        x=event.xdata
+        y=event.ydata
+        self.pickax=event.inaxes
+        basictext=self.format_annot(x, y)
+        if basictext!=" ":
+            if self.annot and self.pickax is self.ax:    
+                self.fig.texts[1].set_text(basictext)
+                self.fig.canvas.draw()
     def onclick(self,event):
+        print('ok')
         x=event.xdata
         y=event.ydata
         self.pickax=event.inaxes
@@ -650,7 +728,7 @@ class plotter:
             
                 if self.withdraw:
                     self.fig.canvas.draw()
-            
+                
             
         
     def figsave(self,**kwargs):

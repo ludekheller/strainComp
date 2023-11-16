@@ -119,7 +119,15 @@ class calcMT:
                 if space=='martensite space':
                     #in Martensite space
                     #def. grad in mart space
+                    F_AM_M=T_AM[:,:,var].dot(F_AM[:,:,var].dot(T_AM[:,:,var].T))
                     F=T_AM[:,:,var].dot(F_AM[:,:,var].dot(T_AM[:,:,var].T))
+                    U_AM_M = scipy.linalg.sqrtm(F_AM_M.T.dot(F_AM_M))
+                    Q_M_M = F_AM_M.dot(inv(U_AM_M));
+                    
+                    #F_AM_M[:,:,var]=T_AM[:,:,var].dot(F_AM[:,:,var].dot(T_AM[:,:,var].T))
+                    #U_AM_M[:,:,var]=U
+                    #Q_MM[:,:,var]=Q
+                    
                 else:
                     F=F_AM[:,:,var]
                 TransformationStrain.append(np.sqrt(np.sum(oris*(F.T.dot(F.dot(oris))),axis=0))-1) 
@@ -142,9 +150,13 @@ class calcMT:
             #Convert to array 12 x number of  orientations
             TransformationStrain=np.array(TransformationStrain)    
             StressfreeRefs[space]={}
-            keys=['F_AM', 'U_AM', 'Q_M', 'T_MA', 'T_AM','TransformationStrain','EigVals','EigVecs','epsilon_2','lambda_2','strain']
+            
+            keys=['F_AM', 'U_AM', 'Q_M', 'F_AM_M', 'U_AM_M', 'Q_M_M', 'T_MA', 'T_AM','TransformationStrain','EigVals','EigVecs','epsilon_2','lambda_2','strain']
             for key in keys:
-                exec(f"StressfreeRefs['{space}']['{key}']={key}")
+                try:
+                    exec(f"StressfreeRefs['{space}']['{key}']={key}")
+                except:
+                    pass
         self.StressfreeRefs=StressfreeRefs
     
     def solveCompProblemWithStress(self,loaddir, UniaxialStress,var=None,STA=None):
@@ -271,7 +283,7 @@ class calcMT:
             Solution[key] = np.empty((Solution['StressSpace'].shape + tuple([3])))
             Solution[key][:]=np.nan
         #Storing matrices
-        keysM=['F_AMStress','T_MA', 'T_AM']#,'LAStress','LMStress']
+        keysM=['F_AMStress', 'U_AMStress', 'Q_MStress','T_MA', 'T_AM']#,'LAStress','LMStress']
         for key in keysM:
             Solution[key] = np.empty((Solution['StressSpace'].shape + tuple([3]) + tuple([3])))
             Solution[key][:]=np.nan
@@ -304,7 +316,10 @@ class calcMT:
                     exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][:,:,0]")
                 for key in keysML:
                     #exec(f"print({key}.shape:self.CurrentCompWithStress['{key}'].shape")
-                    exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][0]")
+                    if key=='ALLEigVecs':
+                        exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][0]")
+                    else:
+                        exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}']")
         self.CurrentCompWithStressOris=Solution
     def solveCompProblemWithCpOris(self,idxs=None,oris=None,stress=None,CPspace=None,vars=None):
         S_Af=compliance_from_tensor2voight_notation(self.STA)
@@ -312,7 +327,7 @@ class calcMT:
         C11i=C_Af[0,0]
         C12i=C_Af[0,1]
         C44i=C_Af[3,3]
-        method='symsoft'
+        
         STA=[]
         
         #assign self parameters self.X to local variable X
@@ -343,13 +358,21 @@ class calcMT:
             Solution[key]=np.empty((Solution['CPspace'].shape))
             Solution[key][:]=np.nan
             
+        keysC = ['C11','C12','C44'] 
+        for key in keysC:
+            #we create an array to store variables computed for all stresses, variants, and orientations
+            #it is indexed [i,j,k] - i for stress, j for variant, k for orientation
+            #Solution[key]=np.empty((StressSpace.shape[0],Cd.shape[2],oris.shape[1]))
+            Solution[key]=np.empty((Solution['CPspace'].shape))
+            Solution[key][:]=np.nan
+
         #Storing vectors
         keysV=['ALLEigVecEps2','ALLEigVals']
         for key in keysV:
             Solution[key] = np.empty((Solution['CPspace'].shape + tuple([3])))
             Solution[key][:]=np.nan
         #Storing matrices
-        keysM=['F_AMStress','T_MA', 'T_AM']#,'LAStress','LMStress']
+        keysM=['F_AMStress','U_AMStress', 'Q_MStress','T_MA', 'T_AM']#,'LAStress','LMStress']
         for key in keysM:
             Solution[key] = np.empty((Solution['CPspace'].shape + tuple([3]) + tuple([3])))
             Solution[key][:]=np.nan
@@ -364,12 +387,17 @@ class calcMT:
         for i,j,k in zip(idxs[0],idxs[1],idxs[2]):
             if j in vars:
                 loaddir=oris[:,k]
-                UniaxialStress = self.stress          
-                STA.append(self.get_STA(Solution['CPspace'][i,j,k],C11i,C12i,C44i, method))
+                UniaxialStress = self.stress  
+                STAijk,parent_elastic_constants=self.get_STA(Solution['CPspace'][i,j,k],C11i,C12i,C44i,output='STAC')
+                STA.append(STAijk)
+                
                 #print(loaddir)
                 #print(UniaxialStress)
                 #print(j)
                 self.solveCompProblemWithStress(loaddir,UniaxialStress,var=[j],STA=STA[-1])
+                Solution['C11'][i,j,k]=parent_elastic_constants['11']
+                Solution['C12'][i,j,k]=parent_elastic_constants['12']
+                Solution['C44'][i,j,k]=parent_elastic_constants['44']
                 for key in keysS:
                     exec(f"Solution['{key}'][i,j,k]=self.CurrentCompWithStress['{key}'][0]")
                 #for key in 'Strain_inA_along_Eps2 Strain_inM_along_Eps2'.split():
@@ -383,7 +411,13 @@ class calcMT:
                     exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][:,:,0]")
                 for key in keysML:
                     #exec(f"print({key}.shape:self.CurrentCompWithStress['{key}'].shape")
-                    exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][0]")
+                    #exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][0]")
+                    #print(self.CurrentCompWithStress[key])
+                    #print(key)
+                    if key=='ALLEigVecs':
+                        exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}'][0]")
+                    else:
+                        exec(f"Solution['{key}'][i,j,k,:,:]=self.CurrentCompWithStress['{key}']")
 
         self.STAspace=STA
         self.CurrentCompWithCpOris=Solution
@@ -544,12 +578,37 @@ class calcMT:
         Solution['CPSpace'] = f(xnew)
         return Solution['CPSpace']
     
-    def get_STA(self,CPi,C11i,C12i,C44i, method='symsoft',output='STA'):
-        Cpi=(C11i-C12i)/2
-        dCp=(Cpi-CPi)
-        C11=C11i-dCp*1
-        C12=C12i+dCp*1
-        C44=C44i
+    def get_STA(self,CPi,C11i,C12i,C44i,output='STA'):
+        if self.softeningmethod=='symsoft':
+            Cpi=(C11i-C12i)/2
+            dCp=(Cpi-CPi)
+            C11=C11i-dCp*1
+            C12=C12i+dCp*1
+            C44=C44i
+        elif self.softeningmethod=='c12hardening':
+            Cpi=(C11i-C12i)/2
+            dCp=(Cpi-CPi)
+            C11=C11i-dCp*0
+            C12=C12i+dCp*2
+            C44=C44i     
+        elif self.softeningmethod=='c11softening':
+            Cpi=(C11i-C12i)/2
+            dCp=(Cpi-CPi)
+            C11=C11i-dCp*2
+            C12=C12i+dCp*0
+            C44=C44i     
+        elif self.softeningmethod=='ren':
+            Cpi=(C11i-C12i)/2
+            dCp=(Cpi-CPi)
+            C11=C11i-dCp*0
+            C12=C12i+dCp*2
+            C44=2.35*(C11-C12)/2    
+        elif self.softeningmethod=='c44softening':
+            C11=C11i
+            C12=C12i
+            C44=CPi    
+            
+        #print(C11)
         parent_elastic_constants={'11':C11,'22':C11,'33':C11,'12':C12,'13':C12,'23':C12,'44':C44,'55':C44,'66':C44}
         C_A = stiffness_matrix(parent_elastic_constants)
         STA=compliance_from_voight_notation2tensor(np.linalg.inv(C_A))
@@ -560,8 +619,20 @@ class calcMT:
             return S_A
         elif output=='CA':
             return C_A
-
-    def generateSTspace(self,numst=10, CP=None, Cpmin='default', Cpmax='default', method='symsoft'):
+        elif output=='STAC':
+            return STA,parent_elastic_constants
+    def get_CP(self):
+        S_Af=compliance_from_tensor2voight_notation(self.STA)
+        C_Af=np.linalg.inv(S_Af)
+        C11i=C_Af[0,0]
+        C12i=C_Af[0,1]
+        C44i=C_Af[3,3]
+        if self.softeningmethod=='c44softening':
+            self.currentCP=C44i
+        else:
+            self.currentCP=(C11i-C12i)/2
+        
+    def generateSTspace(self,numst=10, CP=None, Cpmin='default', Cpmax='default'):
         S_Af=compliance_from_tensor2voight_notation(self.STA)
         C_Af=np.linalg.inv(S_Af)
         C11i=C_Af[0,0]
@@ -580,9 +651,9 @@ class calcMT:
         #CP=np.linspace(Cpi,Cpmin,numst)
         #CP=np.linspace(Cpi,0,numst+1)[:-1]
         STA=[]
-        if method=='symsoft':
-            for CPi in CP:
-                STA.append(self.get_STA(CPi,C11i,C12i,C44i, method))
+        #if method=='symsoft':
+        for CPi in CP:
+            STA.append(self.get_STA(CPi,C11i,C12i,C44i))
         self.STAspace=STA
         self.CP=CP
     
