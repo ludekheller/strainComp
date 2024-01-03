@@ -410,7 +410,7 @@ class plotter:
         self.histdata=histdata
         if self.histdataweights is None:
             hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]])
-            print('none')
+            #print('none')
         else:
             self.histdataweights=histdataweights
             hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]],weights=self.histdataweights)
@@ -570,7 +570,7 @@ class plotter:
         return basictext
     def dataShow(self,**kwargs):
         self.setAttributes(**kwargs)
-        #self.ax.format_coord = self.format_coord
+        self.ax.format_coord = self.format_coord
     def onmove(self,event):  
         if event.inaxes:
             #print(dir(event))
@@ -650,7 +650,7 @@ class plotter:
         #        self.fig.canvas.draw()
         plt.draw()
     def onclick3(self,event):
-        print('ok')
+        #print('ok')
         x=event.xdata
         y=event.ydata
         self.pickax=event.inaxes
@@ -660,7 +660,7 @@ class plotter:
                 self.fig.texts[1].set_text(basictext)
                 self.fig.canvas.draw()
     def onclick(self,event):
-        print('ok')
+        #print('ok')
         x=event.xdata
         y=event.ydata
         self.pickax=event.inaxes
