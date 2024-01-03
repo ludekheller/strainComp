@@ -435,12 +435,16 @@ def equalarea_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
     
     proj_planes=[];
     Zdir=[]
+    #print(hemisphere)
     for i in range(0,normals.shape[1]):
         Rot2Global = np.transpose(np.vstack((inplanedirs[:,i],thirdaxis[:,i],normals[:,i])));
         Ccp = np.matmul(Rot2Global,basicarc);
         Zdir=Ccp[2]
         if hemisphere == "both":            
             Ds = equalarea_directions(Ccp)
+        elif hemisphere == "triangle":  
+            #idxs = np.where(Ccp[2,:]>=0)[0]
+            Ds=equalarea_intotriangle(Ccp)#[:,idxs])
         else:
             if hemisphere == "upper":
                 idxs = np.where(Ccp[2,:]>=0)[0]
@@ -449,6 +453,7 @@ def equalarea_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
                 idxs = np.where(Ccp[2,:]<=0)[0]
                 Ds = equalarea_directions(Ccp[:,idxs])
         proj_planes.append(Ds)
+    
     if len(proj_planes)==1:
         return proj_planes[0]
     else:          
@@ -1868,6 +1873,9 @@ def stereoprojection_planes(normals,arclength=360.,iniangle=0.,hemisphere='both'
         
         if hemisphere == "both":            
             Ds = stereoprojection_directions(Ccp)
+        elif hemisphere == "triangle":  
+            #idxs = np.where(Ccp[2,:]>=0)[0]
+            Ds=stereoprojection_intotriangle(Ccp)#[:,idxs])
         else:
             if hemisphere == "upper":
                 idxs = np.where(Ccp[2,:]>=0)[0]

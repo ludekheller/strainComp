@@ -399,7 +399,7 @@ class plotter:
                     self.scat.append(self.ax.scatter(scatterproj[0,self.scatterzorder],scatterproj[1,self.scatterzorder],s=s,c=c,linewidth=self.scatterlinewidth,edgecolors=self.scatteredgecolors, cmap=self.cmap,vmin=self.scattercolscalevm[0],vmax=self.scattercolscalevm[1]))
                 else:
                     self.scat.append(self.ax.scatter(scatterproj[0,self.scatterzorder],scatterproj[1,self.scatterzorder],s=s,c=c,linewidth=self.scatterlinewidth, edgecolors=self.scatteredgecolors,cmap=self.cmap))
-
+            
     def plotScatterAsHist(self,**kwargs):
         self.setAttributes(**kwargs)
         histdata=np.empty((3,0))
@@ -408,8 +408,12 @@ class plotter:
             histdata=np.hstack((histdata,scatterproj))
             histdataweights=np.hstack((histdataweights,self.hbptrstrainnorm))
         self.histdata=histdata
-        self.histdataweights=histdataweights
-        hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]],weights=self.histdataweights)
+        if self.histdataweights is None:
+            hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]])
+            print('none')
+        else:
+            self.histdataweights=histdataweights
+            hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]],weights=self.histdataweights)
         
         if self.histscale=='sqrt':
             hist=hist**0.5

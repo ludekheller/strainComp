@@ -600,8 +600,8 @@ class calcMT:
         elif self.softeningmethod=='ren':
             Cpi=(C11i-C12i)/2
             dCp=(Cpi-CPi)
-            C11=C11i-dCp*0
-            C12=C12i+dCp*2
+            C11=C11i-dCp*2
+            C12=C12i+dCp*0
             C44=2.35*(C11-C12)/2    
         elif self.softeningmethod=='c44softening':
             C11=C11i

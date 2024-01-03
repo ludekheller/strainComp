@@ -801,104 +801,104 @@ def equalarea_directions(dirs):
         
         
     return proj_dirs
-def equalarea_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
-    #%normals = [x1,x2,...,xn;y1,y2,...,yn;z1,z2,...,zn];
-    #%varargin{1} arclength in deg
-    #normals = np.transpose(np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[0,1,1],[1,0,1]]))
-    #
-    if len(normals.shape)==1:
-        normals = np.expand_dims(normals,axis=1)
+# def equalarea_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
+#     #%normals = [x1,x2,...,xn;y1,y2,...,yn;z1,z2,...,zn];
+#     #%varargin{1} arclength in deg
+#     #normals = np.transpose(np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[0,1,1],[1,0,1]]))
+#     #
+#     if len(normals.shape)==1:
+#         normals = np.expand_dims(normals,axis=1)
 
-    normals = normals.astype(float)
-    normals /= np.sqrt((normals ** 2).sum(0))
+#     normals = normals.astype(float)
+#     normals /= np.sqrt((normals ** 2).sum(0))
 
-    proj_normals = equalarea_directions(normals)
+#     proj_normals = equalarea_directions(normals)
 
-    idxs = np.where(abs(normals[0,:])+abs(normals[1,:])==0)[0]
+#     idxs = np.where(abs(normals[0,:])+abs(normals[1,:])==0)[0]
     
-    inplanedirs = np.vstack((-normals[1,:],normals[0,:],np.zeros(normals[0,:].shape)));
-    inplanedirs[:,idxs] = np.vstack((np.zeros(normals[0,idxs].shape), -normals[2,idxs],normals[1,idxs]));
+#     inplanedirs = np.vstack((-normals[1,:],normals[0,:],np.zeros(normals[0,:].shape)));
+#     inplanedirs[:,idxs] = np.vstack((np.zeros(normals[0,idxs].shape), -normals[2,idxs],normals[1,idxs]));
     
-    inplanedirs /= np.sqrt((inplanedirs ** 2).sum(0))
+#     inplanedirs /= np.sqrt((inplanedirs ** 2).sum(0))
 
-    thirdaxis=np.cross(normals,inplanedirs,axisa=0,axisb=0,axisc=0)
-#    thirdaxis = np.vstack((normals[1,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[1,:],
-#                           -1*(normals[0,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[0,:]),
-#                           normals[0,:]*inplanedirs[1,:]-normals[1,:]*inplanedirs[0,:]));
-    t=np.linspace(iniangle,iniangle+arclength,180*2+1)*np.pi/180;
-    basicarc = np.vstack((np.cos(t),np.sin(t),np.zeros(t.shape)));
+#     thirdaxis=np.cross(normals,inplanedirs,axisa=0,axisb=0,axisc=0)
+# #    thirdaxis = np.vstack((normals[1,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[1,:],
+# #                           -1*(normals[0,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[0,:]),
+# #                           normals[0,:]*inplanedirs[1,:]-normals[1,:]*inplanedirs[0,:]));
+#     t=np.linspace(iniangle,iniangle+arclength,180*2+1)*np.pi/180;
+#     basicarc = np.vstack((np.cos(t),np.sin(t),np.zeros(t.shape)));
     
-    proj_planes=[];
-    Zdir=[]
-    for i in range(0,normals.shape[1]):
-        Rot2Global = np.transpose(np.vstack((inplanedirs[:,i],thirdaxis[:,i],normals[:,i])));
-        Ccp = np.matmul(Rot2Global,basicarc);
-        Zdir=Ccp[2]
-        if hemisphere == "both":            
-            Ds = equalarea_directions(Ccp)
-        else:
-            if hemisphere == "upper":
-                idxs = np.where(Ccp[2,:]>=0)[0]
-                Ds = equalarea_directions(Ccp[:,idxs])
-            elif hemisphere == "lower":
-                idxs = np.where(Ccp[2,:]<=0)[0]
-                Ds = equalarea_directions(Ccp[:,idxs])
-        proj_planes.append(Ds)
-    if len(proj_planes)==1:
-        return proj_planes[0]
-    else:          
-        return proj_planes
+#     proj_planes=[];
+#     Zdir=[]
+#     for i in range(0,normals.shape[1]):
+#         Rot2Global = np.transpose(np.vstack((inplanedirs[:,i],thirdaxis[:,i],normals[:,i])));
+#         Ccp = np.matmul(Rot2Global,basicarc);
+#         Zdir=Ccp[2]
+#         if hemisphere == "both":            
+#             Ds = equalarea_directions(Ccp)
+#         else:
+#             if hemisphere == "upper":
+#                 idxs = np.where(Ccp[2,:]>=0)[0]
+#                 Ds = equalarea_directions(Ccp[:,idxs])
+#             elif hemisphere == "lower":
+#                 idxs = np.where(Ccp[2,:]<=0)[0]
+#                 Ds = equalarea_directions(Ccp[:,idxs])
+#         proj_planes.append(Ds)
+#     if len(proj_planes)==1:
+#         return proj_planes[0]
+#     else:          
+#         return proj_planes
 
 
-def stereoprojection_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
-    #%normals = [x1,x2,...,xn;y1,y2,...,yn;z1,z2,...,zn];
-    #%varargin{1} arclength in deg
-    #normals = np.transpose(np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[0,1,1],[1,0,1]]))
-    #
-    if len(normals.shape)==1:
-        normals = np.expand_dims(normals,axis=1)
+# def stereoprojection_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
+#     #%normals = [x1,x2,...,xn;y1,y2,...,yn;z1,z2,...,zn];
+#     #%varargin{1} arclength in deg
+#     #normals = np.transpose(np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[0,1,1],[1,0,1]]))
+#     #
+#     if len(normals.shape)==1:
+#         normals = np.expand_dims(normals,axis=1)
 
-    normals = normals.astype(float)
-    normals /= np.sqrt((normals ** 2).sum(0))
+#     normals = normals.astype(float)
+#     normals /= np.sqrt((normals ** 2).sum(0))
 
-    proj_normals = stereoprojection_directions(normals)
+#     proj_normals = stereoprojection_directions(normals)
 
-    idxs = np.where(abs(normals[0,:])+abs(normals[1,:])==0)[0]
+#     idxs = np.where(abs(normals[0,:])+abs(normals[1,:])==0)[0]
     
-    inplanedirs = np.vstack((-normals[1,:],normals[0,:],np.zeros(normals[0,:].shape)));
-    inplanedirs[:,idxs] = np.vstack((np.zeros(normals[0,idxs].shape), -normals[2,idxs],normals[1,idxs]));
+#     inplanedirs = np.vstack((-normals[1,:],normals[0,:],np.zeros(normals[0,:].shape)));
+#     inplanedirs[:,idxs] = np.vstack((np.zeros(normals[0,idxs].shape), -normals[2,idxs],normals[1,idxs]));
     
-    inplanedirs /= np.sqrt((inplanedirs ** 2).sum(0))
+#     inplanedirs /= np.sqrt((inplanedirs ** 2).sum(0))
 
-    thirdaxis=np.cross(normals,inplanedirs,axisa=0,axisb=0,axisc=0)
-#    thirdaxis = np.vstack((normals[1,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[1,:],
-#                           -1*(normals[0,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[0,:]),
-#                           normals[0,:]*inplanedirs[1,:]-normals[1,:]*inplanedirs[0,:]));
-    t=np.linspace(iniangle,iniangle+arclength,180*2+1)*np.pi/180;
-    basicarc = np.vstack((np.cos(t),np.sin(t),np.zeros(t.shape)));
+#     thirdaxis=np.cross(normals,inplanedirs,axisa=0,axisb=0,axisc=0)
+# #    thirdaxis = np.vstack((normals[1,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[1,:],
+# #                           -1*(normals[0,:]*inplanedirs[2,:]-normals[2,:]*inplanedirs[0,:]),
+# #                           normals[0,:]*inplanedirs[1,:]-normals[1,:]*inplanedirs[0,:]));
+#     t=np.linspace(iniangle,iniangle+arclength,180*2+1)*np.pi/180;
+#     basicarc = np.vstack((np.cos(t),np.sin(t),np.zeros(t.shape)));
     
-    proj_planes=[];
-    Zdir=[]
-    points=[]
-    for i in range(0,normals.shape[1]):
-        Rot2Global = np.transpose(np.vstack((inplanedirs[:,i],thirdaxis[:,i],normals[:,i])));
-        Ccp = np.matmul(Rot2Global,basicarc);
-        points.append(Ccp)
-        Zdir=Ccp[2]
-        if hemisphere == "both":            
-            Ds = stereoprojection_directions(Ccp)
-        else:
-            if hemisphere == "upper":
-                idxs = np.where(Ccp[2,:]>=0)[0]
-                Ds = stereoprojection_directions(Ccp[:,idxs])
-            elif hemisphere == "lower":
-                idxs = np.where(Ccp[2,:]<=0)[0]
-                Ds = stereoprojection_directions(Ccp[:,idxs])
-        proj_planes.append(Ds)
-    if len(proj_planes)==1:
-        return proj_planes[0],points[0]
-    else:          
-        return proj_planes, points
+#     proj_planes=[];
+#     Zdir=[]
+#     points=[]
+#     for i in range(0,normals.shape[1]):
+#         Rot2Global = np.transpose(np.vstack((inplanedirs[:,i],thirdaxis[:,i],normals[:,i])));
+#         Ccp = np.matmul(Rot2Global,basicarc);
+#         points.append(Ccp)
+#         Zdir=Ccp[2]
+#         if hemisphere == "both":            
+#             Ds = stereoprojection_directions(Ccp)
+#         else:
+#             if hemisphere == "upper":
+#                 idxs = np.where(Ccp[2,:]>=0)[0]
+#                 Ds = stereoprojection_directions(Ccp[:,idxs])
+#             elif hemisphere == "lower":
+#                 idxs = np.where(Ccp[2,:]<=0)[0]
+#                 Ds = stereoprojection_directions(Ccp[:,idxs])
+#         proj_planes.append(Ds)
+#     if len(proj_planes)==1:
+#         return proj_planes[0],points[0]
+#     else:          
+#         return proj_planes, points
 
 def euler_angles_reduction(Phi1,PHI,Phi2):
 
