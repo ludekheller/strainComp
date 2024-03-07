@@ -49,7 +49,7 @@ class plotter:
         self.setAttributes(scatterplot=False, scatterdata=None,scattercolscale=None,scattercolscalevm=None, scattersizescale=None,scat=[],scatteridxs=None,
                            scatterzorder=None,scattercolscaleticks=None,scatterproj=[],scattereqhkl=[],scatteroris=None,scatterLr=None,ax2annot=None,ax2annotcompres=None,
                           ax2annottension=None,scatteredgecolors='None',scatterlinewidth=0,scatteredgecolor='w',scatterfacecolor='k',dirsnormstext={},
-                          dirsfacecolors={},dirsedgecolors={},normsfacecolors={},normsedgecolors={})
+                          dirsfacecolors={},dirsedgecolors={},normsfacecolors={},normsedgecolors={},plot1phasedirs=True)
         #onmovetextAttributes
         self.setAttributes(annot=False,onmovetext=None,showdataasplotted=True, showdatanames=None,showdata=None)
 
@@ -83,7 +83,6 @@ class plotter:
             self.equalarea=True
         else:
             self.equalarea=False
-
         if self.equalarea:
             if self.sphere=='half':
                 self.fig,self.ax=schmidtnet_half(ax=self.ax,basedirs=False,facecolor='None')
@@ -145,10 +144,16 @@ class plotter:
             legsizecoeff=1.
             if self.correspondentpointsize!=self.scatterpointsize:
                 legsizecoeff=1.4
+                
+            
             legend_elements = [Line2D([0], [0], color=legbackg2,marker='o', label=self.phase1,
                               markerfacecolor='k', markeredgecolor='w',markersize=self.scatterpointsize/70*10),
                               Line2D([0], [0], color=legbackg2,marker='o', label=self.phase2,
                               markerfacecolor='w', markeredgecolor='k',markersize=self.correspondentpointsize/self.scatterpointsize*10*legsizecoeff)]
+            if not self.plot1phasedirs:
+                legend_elements = [Line2D([0], [0], color=legbackg2,marker='o', label=self.phase2,
+                                  markerfacecolor='w', markeredgecolor='k',markersize=self.correspondentpointsize/self.scatterpointsize*10*legsizecoeff)]
+                
         dirs,normals=gen_dirs_norms(self.LPhase1, self.LrPhase1,self.dirs,self.norms,R2Proj=self.R2Proj, recsymops=self.recsymops,symops=self.symops)
         uvwkeys=[f"{int(d['uvw'][0])}{int(d['uvw'][1])}{int(d['uvw'][2])}" for d in dirs]
         hklkeys=[f"{int(d['hkl'][0])}{int(d['hkl'][1])}{int(d['hkl'][2])}" for d in normals]
@@ -218,7 +223,8 @@ class plotter:
             edgecolors=[edgecolor[d2p[3]] for d2p in d2plot if d2p[0][1]>=self.textlim]
             #print(facecolors)
             #print(edgecolors)
-            self.ax.scatter([d2p[0][0,0] for d2p in d2plot if d2p[0][1]>=self.textlim],[d2p[0][1,0] for d2p in d2plot if d2p[0][1]>=self.textlim],c=facecolors,s=self.scatterpointsize,edgecolors=edgecolors,linewidths=1, zorder=500000)
+            if self.plot1phasedirs:
+                self.ax.scatter([d2p[0][0,0] for d2p in d2plot if d2p[0][1]>=self.textlim],[d2p[0][1,0] for d2p in d2plot if d2p[0][1]>=self.textlim],c=facecolors,s=self.scatterpointsize,edgecolors=edgecolors,linewidths=1, zorder=500000)
             C2plotx=[]
             C2ploty=[]
             COLS=[]
@@ -260,6 +266,8 @@ class plotter:
                         textPh2=f'${brackCL}{{{int(d2pc[0])}}}{{{int(d2pc[1])}}}{{{int(d2pc[2])}}}{brackCR}^{{{self.phase2}}}$'
                         if self.printPhase2First:
                             text=f'{textPh2}{self.correspdelim}{textPh1}'
+                            if not self.plot1phasedirs:
+                                text=f'{textPh2}'
                         else:
                             text=f'{textPh1}{self.correspdelim}{textPh2}'
                     else:
@@ -408,6 +416,7 @@ class plotter:
             histdata=np.hstack((histdata,scatterproj))
             histdataweights=np.hstack((histdataweights,self.hbptrstrainnorm))
         self.histdata=histdata
+        self.histdataweights=histdataweights
         if self.histdataweights is None:
             hist, xedges, yedges = np.histogram2d(self.histdata[1,:], self.histdata[0,:], bins=self.bins,range=[[-1, 1], [-1, 1]])
             #print('none')

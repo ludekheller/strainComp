@@ -6,7 +6,7 @@ Created on Wed Sep 11 10:07:07 2019
 @author: lheller
 """
 import numpy as np
-
+import math
 
 def eu2quat(phi1,Phi,phi2): #Euler angles to quaternions
     q = np.zeros((4))
@@ -788,5 +788,175 @@ def QMatproduct(sym,Q):
     return SQ
 
 
+
+def grid_s1(resol, grids=6):
+    number_points = (2 ** resol) * grids
+
+    interval = 2 * np.pi / number_points
+
+    points = [interval / 2 + i * interval for i in range(number_points)]
+
+    return points
+
+
+def hopf2quat(Points):
+    quats = []
+
+    for i in range(len(Points)):
+        x4 = math.sin(Points[i][0] / 2) * math.sin(Points[i][1] + Points[i][2] / 2)
+
+        x1 = math.cos(Points[i][0] / 2) * math.cos(Points[i][2] / 2)
+
+        x2 = math.cos(Points[i][0] / 2) * math.sin(Points[i][2] / 2)
+
+        x3 = math.sin(Points[i][0] / 2) * math.cos(Points[i][1] + Points[i][2] / 2)
+
+        quats.append([x1, x2, x3, x4])
+
+    return quats
+
+
+def nside2npix(nside):
+    return 12 * nside * nside
+
+
+def pix2ang_nest(nside, ipix, pix2x, pix2y):
+    jrll = np.array([2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4])
+
+    jpll = np.array([1, 3, 5, 7, 0, 2, 4, 6, 1, 3, 5, 7])
+
+    if (nside < 1) or (nside > 8192):
+        raise Exception('nside out of range:', nside)
+
+    if (ipix < 0) or (ipix > 12 * nside * nside - 1):
+        raise Exception('ipix out of range:', ipix)
+
+    fn = 1. * nside
+
+    fact1 = 1. / (3. * fn * fn)
+
+    fact2 = 2. / (3. * fn)
+
+    nl4 = 4 * nside
+
+    npface = nside * nside
+
+    face_num = int(ipix / npface)
+
+    ipf = int(ipix % npface)
+
+    ip_low = int(ipf % 1024)
+
+    ip_trunc = ipf / 1024
+
+    ip_med = int(ip_trunc % 1024)
+
+    ip_hi = int(ip_trunc / 1024)
+
+    ix = 1024 * pix2x[ip_hi] + 32 * pix2x[ip_med] + pix2x[ip_low]
+
+    iy = 1024 * pix2y[ip_hi] + 32 * pix2y[ip_med] + pix2y[ip_low]
+
+    jrt = ix + iy
+
+    jpt = ix - iy
+
+    jr = jrll[face_num] * nside - jrt - 1
+
+    nr = nside
+
+    z = (2 * nside - jr) * fact2
+
+    kshift = int((jr - nside) % 2)
+
+    if jr < nside:
+
+        nr = jr
+
+        z = 1. - nr * nr * fact1
+
+        kshift = 0
+
+    elif jr > 3 * nside:
+
+        nr = nl4 - jr
+
+        z = - 1. + nr * nr * fact1
+
+        kshift = 0
+
+    theta = np.arccos(z)
+
+    jp = (jpll[face_num] * nr + jpt + 1 + kshift) / 2
+
+    if jp > nl4:
+        jp = jp - nl4
+
+    if jp < 1:
+        jp = jp + nl4
+
+    phi = (jp - (kshift + 1) * 0.5) * (np.pi / 2 / nr)
+
+    return theta, phi
+
+
+def mk_pix2xy():
+    pix2x = []
+
+    pix2y = []
+
+    for kpix in range(1024):
+
+        jpix = kpix
+
+        IX = 0
+
+        IY = 0
+
+        IP = 1
+
+        while jpix != 0:
+            ID = int(jpix % 2)
+
+            jpix /= 2
+
+            IX = ID * IP + IX
+
+            ID = int(jpix % 2)
+
+            jpix /= 2
+
+            IY = ID * IP + IY
+
+            IP = 2 * IP
+
+        pix2x.append(IX)
+
+        pix2y.append(IY)
+
+    return pix2x, pix2y
+
+
+def simple_grid(resol):
+    Psi_Points = grid_s1(resol)
+
+    Nside = 2 ** resol
+
+    numpixels = nside2npix(Nside)
+
+    pix2x, pix2y = mk_pix2xy()
+
+    Healpix_Points = []
+
+    for i in range(numpixels):
+        theta, phi = pix2ang_nest(Nside, i, pix2x, pix2y)
+
+        Healpix_Points.append([theta, phi])
+
+    S3_Points = [[theta, phi, psi] for [theta, phi] in Healpix_Points for psi in Psi_Points]
+
+    quats = hopf2quat(S3_Points)
+
+    return quats
 
     

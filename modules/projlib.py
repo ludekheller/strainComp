@@ -374,6 +374,12 @@ def fullcirc_hist(Mats, Dr=[0,0,1], symops=None, equalarea=False, scale='sqrt', 
 
     if ret:
         return hist, xedges, yedges, fig, ax
+#convert projected points into xyz
+def rp2xyz(r,p):
+    npatan2d = lambda x,y: 180.*np.arctan2(x,y)/np.pi
+    z = npcosd(r)
+    xy = np.sqrt(1.-z**2)
+    return xy*npsind(p),xy*npcosd(p),z
 
 def stereoprojection_directions(dirs):
     #dirs = [x1,x2,...,xn;y1,y2,...,yn;z1,z2,...,zn];
@@ -458,6 +464,35 @@ def equalarea_planes(normals,arclength=360.,iniangle=0.,hemisphere="both"):
         return proj_planes[0]
     else:          
         return proj_planes
+def stereo2xyz(projdir):
+    r,p = 2.*np.arctan(np.sqrt(projdir[0]**2+projdir[1]**2)),np.arctan2(projdir[1],projdir[0])
+    z = np.cos(r)
+    xy = np.sqrt(1.-z**2)
+    return xy*np.cos(p),xy*np.sin(p),z
+
+def equalarea2xyz(projdir):
+    if projdir[0]==0:
+        an=np.pi/2
+    else:
+        an=np.arctan(projdir[1]/projdir[0])
+    dirsxy1=np.cos(an)
+    dirsxy2=np.sin(an)
+    if projdir[0]==0:
+        alpha=np.arcsin(projdir[1]/dirsxy2/2)*2
+    else:
+        alpha=np.arcsin(projdir[0]/dirsxy1/2)*2
+    z=np.cos(alpha)
+    if projdir[0]==0:
+        x=0
+        y=np.sin(alpha)
+    elif projdir[1]==0:
+        y=0
+        x=np.sin(alpha)
+    else:
+        x=dirsxy1*np.sin(alpha)
+        y=dirsxy2*np.sin(alpha)
+    return x,y,z
+
 
 def equalarea_directions(dirs):
     #dirs = [x1,x2,...,xn;y1,y2,...,yn;z1,z2,...,zn];
@@ -472,7 +507,6 @@ def equalarea_directions(dirs):
     #normalizing dirs
     dirs /= np.sqrt((dirs ** 2).sum(0))
     dirsxy = dirs[0:2,:];
-    #print(dirsxy)
     eps=1e-6
     normdirsxy = np.sqrt((dirsxy ** 2).sum(0))
     idxs=np.where(normdirsxy<eps)
@@ -531,8 +565,10 @@ def wulffnet(ax=None,basedirs=False,facecolor=(210./255.,235./255.,255./255.)):
         fig=ax.get_figure()
     if basedirs:
         basicdirections = np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[0,1,1],[1,0,1]]);
+        basicdirections = np.array([[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,1,1],[-1,1,1],[1,-1,1],[-1,-1,1],[0,1,1],[1,0,1]]);
         #basicdirections = [1,0,0;0,1,0;0,0,1;1,1,0;1,1,1;0,1,1;1,0,1;1,1,-2;-1,-1,2;1,-1,0;-1,1,0];
         basicdirectionstext = np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[0,1,1],[1,0,1]]);
+        basicdirectionstext = np.array([[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,1,1],[-1,1,1],[1,-1,1],[-1,-1,1],[0,1,1],[1,0,1]]);
         #basicdirectionstext = [1,0,0;0,1,0;0,0,1;1,1,0;1,1,1;0,1,1;1,0,1;1,1,-2;-1,-1,2;1,-1,0;-1,1,0];
 
 
@@ -1374,7 +1410,6 @@ def stereotriangle(ax=None,basedirs=False,equalarea=False,grid=False,resolution=
     if mesh:
         dan=resolution
         dan2=resolution
-        equalarea=True
         an1=[dan*(ii+1)/180*np.pi for ii in range(int(45/dan))]
         for ii,a1 in enumerate(an1):
             vertical=[]

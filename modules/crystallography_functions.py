@@ -2491,7 +2491,6 @@ def plot_lattice_plane(axl,PlanePoints,**kwargs):
     
         axl.add_collection3d(Poly3DCollection([PlanePoints[:,hull.vertices].T],**kwargs))
     else:
-    
         axl.plot_trisurf(PlanePoints[0,:],PlanePoints[1,:], PlanePoints[2,:],**kwargs)
 
 def plot_lattice_boundaries(axl,LatticePointsNew,allPoints=None,polygon=False,tol=1e-1,**kwargs):

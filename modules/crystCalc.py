@@ -656,6 +656,8 @@ class calcMT:
             STA.append(self.get_STA(CPi,C11i,C12i,C44i))
         self.STAspace=STA
         self.CP=CP
+        self.Cpmin=Cpmin
+        self.Cpmax=Cpmax
     
     def getCompatibilitySolution(self,Solution=None, Cp=False):
         
